@@ -12,8 +12,15 @@ import '../booking/select_booking_time_screen.dart';
 /// Matches reference: parking_search_results/screen.png
 class SearchResultsScreen extends StatelessWidget {
   final String query;
+  final double? latitude;
+  final double? longitude;
 
-  const SearchResultsScreen({super.key, required this.query});
+  const SearchResultsScreen({
+    super.key,
+    required this.query,
+    this.latitude,
+    this.longitude,
+  });
 
   @override
   Widget build(BuildContext context) {
