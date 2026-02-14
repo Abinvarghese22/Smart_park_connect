@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/location_service.dart';
 import '../search/search_results_screen.dart';
 
 /// Search locations screen with search bar, recent searches, popular locations
@@ -17,6 +18,8 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
+  bool _hasText = false;
+  String _currentLocationText = 'Using GPS • High accuracy';
 
   @override
   void initState() {
@@ -25,6 +28,35 @@ class _SearchScreenState extends State<SearchScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
+    
+    // Listen to text changes
+    _searchController.addListener(() {
+      setState(() {
+        _hasText = _searchController.text.isNotEmpty;
+      });
+    });
+    
+    // Initialize current location
+    _initializeCurrentLocation();
+  }
+  
+  Future<void> _initializeCurrentLocation() async {
+    try {
+      final location = await LocationService.instance.getCurrentLocation();
+      if (location != null) {
+        setState(() {
+          _currentLocationText = 'Using GPS • High accuracy';
+        });
+      } else {
+        setState(() {
+          _currentLocationText = 'Location unavailable';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _currentLocationText = 'Location unavailable';
+      });
+    }
   }
 
   @override
@@ -35,17 +67,37 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _performSearch(String query) {
+    if (query.trim().isEmpty) return;
+    
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => SearchResultsScreen(query: query),
+        builder: (_) => SearchResultsScreen(query: query.trim()),
       ),
     );
+  }
+  
+  void _useCurrentLocation() async {
+    final location = await LocationService.instance.getCurrentLocation();
+    if (location != null) {
+      _performSearch('Current Location');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to get current location. Please check location permissions.',
+            style: GoogleFonts.poppins(fontSize: 14),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,15 +143,15 @@ class _SearchScreenState extends State<SearchScreen> {
                               onSubmitted: _performSearch,
                             ),
                           ),
-                          if (_searchController.text.isNotEmpty)
+                          if (_hasText)
                             GestureDetector(
                               onTap: () {
                                 _searchController.clear();
-                                setState(() {});
+                                _focusNode.requestFocus();
                               },
                               child: const Padding(
-                                padding: EdgeInsets.only(right: 8),
-                                child: Icon(Icons.cancel,
+                                padding: EdgeInsets.only(right: 12),
+                                child: Icon(Icons.clear,
                                     color: AppColors.textHint, size: 20),
                               ),
                             ),
@@ -111,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   GestureDetector(
                     onTap: () {
                       _searchController.clear();
-                      setState(() {});
+                      _focusNode.requestFocus();
                     },
                     child: Text(
                       'Clear',
@@ -131,57 +183,69 @@ class _SearchScreenState extends State<SearchScreen> {
             _buildCurrentLocationTile(),
             const SizedBox(height: 8),
 
-            // Recent Searches section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(
-                AppStrings.recentSearches,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textHint,
-                  letterSpacing: 1.2,
+            // Scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Recent Searches section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                      child: Text(
+                        AppStrings.recentSearches,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textHint,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    ...MockDataService.recentSearches.map((item) {
+                      return _buildSearchItem(
+                        icon: Icons.access_time,
+                        title: item['title']!,
+                        subtitle: item['subtitle']!,
+                        onTap: () => _performSearch(item['title']!),
+                      );
+                    }),
+
+                    const SizedBox(height: 8),
+                    // Divider
+                    Container(
+                      height: 8,
+                      color: AppColors.backgroundLight,
+                    ),
+
+                    // Popular Locations section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                      child: Text(
+                        AppStrings.popularLocations,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textHint,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    ...MockDataService.popularLocations.map((item) {
+                      return _buildSearchItem(
+                        icon: Icons.location_city,
+                        title: item['title']!,
+                        subtitle: item['subtitle']!,
+                        onTap: () => _performSearch(item['title']!),
+                        showImage: true,
+                      );
+                    }),
+                    // Add bottom padding for keyboard
+                    SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 20),
+                  ],
                 ),
               ),
             ),
-            ...MockDataService.recentSearches.map((item) {
-              return _buildSearchItem(
-                icon: Icons.access_time,
-                title: item['title']!,
-                subtitle: item['subtitle']!,
-                onTap: () => _performSearch(item['title']!),
-              );
-            }),
-
-            const SizedBox(height: 8),
-            // Divider
-            Container(
-              height: 8,
-              color: AppColors.backgroundLight,
-            ),
-
-            // Popular Locations section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(
-                AppStrings.popularLocations,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textHint,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            ...MockDataService.popularLocations.map((item) {
-              return _buildSearchItem(
-                icon: Icons.location_city,
-                title: item['title']!,
-                subtitle: item['subtitle']!,
-                onTap: () => _performSearch(item['title']!),
-                showImage: true,
-              );
-            }),
           ],
         ),
       ),
@@ -190,7 +254,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildCurrentLocationTile() {
     return InkWell(
-      onTap: () => _performSearch('Current Location'),
+      onTap: _useCurrentLocation,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
@@ -218,7 +282,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                 ),
                 Text(
-                  AppStrings.usingGps,
+                  _currentLocationText,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textSecondary,

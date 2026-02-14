@@ -28,51 +28,18 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
         children: [
-          // Map placeholder (top half)
-          Container(
+          // Real map (top half)
+          RealMapWidget(
             height: MediaQuery.of(context).size.height * 0.48,
-            width: double.infinity,
-            color: const Color(0xFFE8E0D8),
-            child: Stack(
-              children: [
-                // Simulated map background
-                CustomPaint(
-                  size: Size.infinite,
-                  painter: _MapPlaceholderPainter(),
+            parkingSpots: provider.filteredSpots,
+            onMarkerTap: (spot) {
+              provider.selectSpot(spot);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ParkingDetailsScreen(spot: spot),
                 ),
-                // Parking markers on map
-                Positioned(
-                  top: 140,
-                  left: MediaQuery.of(context).size.width * 0.5 - 20,
-                  child: _buildMapMarker('P', AppColors.primary, true),
-                ),
-                Positioned(
-                  top: 220,
-                  left: 80,
-                  child: _buildPriceMarker('\u20B940/hr'),
-                ),
-                // EV charging indicator
-                Positioned(
-                  bottom: 40,
-                  right: 40,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.success.withOpacity(0.3),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.bolt, color: Colors.white, size: 20),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
 
           // Search bar at top
@@ -340,148 +307,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMapMarker(String label, Color color, bool large) {
-    final size = large ? 40.0 : 30.0;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Container(
-          width: size * 0.7,
-          height: size * 0.7,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: size * 0.3,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPriceMarker(String price) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(Icons.local_parking,
-                  size: 14, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            price,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Custom painter for map placeholder background
-class _MapPlaceholderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Light road lines
-    final roadPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..strokeWidth = 8
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // Horizontal roads
-    canvas.drawLine(
-      Offset(0, size.height * 0.3),
-      Offset(size.width, size.height * 0.3),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.6),
-      Offset(size.width, size.height * 0.6),
-      roadPaint,
-    );
-
-    // Vertical roads
-    canvas.drawLine(
-      Offset(size.width * 0.3, 0),
-      Offset(size.width * 0.3, size.height),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.7, 0),
-      Offset(size.width * 0.7, size.height),
-      roadPaint,
-    );
-
-    // Building blocks
-    final blockPaint = Paint()
-      ..color = const Color(0xFFD4CCC4)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-            size.width * 0.05, size.height * 0.05, size.width * 0.2, size.height * 0.2),
-        const Radius.circular(4),
-      ),
-      blockPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-            size.width * 0.4, size.height * 0.35, size.width * 0.25, size.height * 0.2),
-        const Radius.circular(4),
-      ),
-      blockPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-            size.width * 0.75, size.height * 0.1, size.width * 0.2, size.height * 0.15),
-        const Radius.circular(4),
-      ),
-      blockPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
