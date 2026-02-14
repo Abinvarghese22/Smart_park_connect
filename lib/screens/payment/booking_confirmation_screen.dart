@@ -122,9 +122,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
+                        // Navigate to Bookings tab (index 2 for all roles)
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(
-                              builder: (_) => const MainNavigation()),
+                              builder: (_) => const MainNavigation(initialIndex: 2)),
                           (route) => false,
                         );
                       },

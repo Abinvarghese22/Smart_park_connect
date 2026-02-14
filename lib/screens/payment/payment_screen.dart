@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/parking_spot.dart';
+import '../../models/booking.dart';
+import '../../providers/app_provider.dart';
 import 'booking_confirmation_screen.dart';
 
 /// Payment & Confirmation screen with booking summary, payment method, price breakdown
@@ -583,6 +586,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
               height: 56,
               child: ElevatedButton(
                 onPressed: () {
+                  // Create a real booking
+                  final now = DateTime.now();
+                  final booking = Booking(
+                    id: 'bk_${now.millisecondsSinceEpoch}',
+                    parkingSpotId: spot.id,
+                    parkingName: spot.name,
+                    parkingAddress: spot.address,
+                    parkingImage: spot.imageUrl,
+                    startTime: now,
+                    endTime: now.add(Duration(hours: widget.duration.toInt())),
+                    totalPrice: totalAmount,
+                    basePrice: basePrice,
+                    serviceFee: serviceFee,
+                    gst: gst,
+                    status: 'confirmed',
+                  );
+                  context.read<AppProvider>().addBooking(booking);
+
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => BookingConfirmationScreen(
