@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/parking_spot.dart';
+import '../../providers/app_provider.dart';
 import '../booking/select_booking_time_screen.dart';
 
 /// Parking spot details screen with image gallery, amenities, host info, map
@@ -81,9 +83,26 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
                           ),
                           Row(
                             children: [
-                              _buildCircleButton(Icons.share, () {}),
+                              _buildCircleButton(Icons.share, () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Share link copied!'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }),
                               const SizedBox(width: 8),
-                              _buildCircleButton(Icons.favorite_border, () {}),
+                              Builder(
+                                builder: (ctx) {
+                                  final prov = ctx.watch<AppProvider>();
+                                  final isFav = prov.isFavorite(spot.id);
+                                  return _buildCircleButton(
+                                    isFav ? Icons.favorite : Icons.favorite_border,
+                                    () => prov.toggleFavorite(spot.id),
+                                    color: isFav ? AppColors.error : null,
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ],
@@ -478,7 +497,7 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
     );
   }
 
-  Widget _buildCircleButton(IconData icon, VoidCallback onTap) {
+  Widget _buildCircleButton(IconData icon, VoidCallback onTap, {Color? color}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -488,7 +507,7 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
           color: Colors.black.withOpacity(0.3),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
+        child: Icon(icon, color: color ?? Colors.white, size: 20),
       ),
     );
   }

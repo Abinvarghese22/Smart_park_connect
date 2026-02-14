@@ -22,9 +22,17 @@ class SelectBookingTimeScreen extends StatefulWidget {
 
 class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
   // Calendar state
-  DateTime _currentMonth = DateTime(2023, 10);
-  int _selectedDay = 5;
+  late DateTime _currentMonth;
+  late int _selectedDay;
   int _selectedDurationIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _currentMonth = DateTime(now.year, now.month);
+    _selectedDay = now.day;
+  }
 
   // Time state
   String _startTime = '10:00 AM';
@@ -394,7 +402,7 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
                                 duration: selectedDuration,
                                 totalPrice: estimatedPrice,
                                 selectedDate:
-                                    '${_selectedDay} Oct, $_startTime',
+                                    '$_selectedDay ${_getMonthYear().split(' ').first.substring(0, 3)}, $_startTime',
                               ),
                             ),
                           );

@@ -3,8 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
+import '../../models/user_model.dart';
 import '../../providers/app_provider.dart';
+import '../../navigation/main_navigation.dart';
 import '../auth/phone_auth_screen.dart' show LoginScreen;
+import '../home/saved_screen.dart';
 
 /// User Profile & Settings screen with avatar, activity, preferences, system
 /// Matches reference: user_profile_&_settings/screen.png
@@ -40,10 +43,24 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: CircleAvatar(
                       radius: 52,
-                      backgroundImage: NetworkImage(user.avatarUrl),
-                      onBackgroundImageError: (_, __) {},
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      backgroundImage: user.avatarUrl.isNotEmpty
+                          ? NetworkImage(user.avatarUrl)
+                          : null,
+                      onBackgroundImageError: user.avatarUrl.isNotEmpty
+                          ? (_, __) {}
+                          : null,
                       child: user.avatarUrl.isEmpty
-                          ? const Icon(Icons.person, size: 40)
+                          ? Text(
+                              user.name.isNotEmpty
+                                  ? user.name[0].toUpperCase()
+                                  : 'U',
+                              style: GoogleFonts.poppins(
+                                fontSize: 40,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            )
                           : null,
                     ),
                   ),
@@ -76,37 +93,47 @@ class ProfileScreen extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
 
-              // Verified owner badge
-              if (user.isVerifiedOwner)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppColors.success.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.verified,
-                          color: AppColors.success, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        AppStrings.verifiedOwner,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.success,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
+              // Email
+              if (user.email.isNotEmpty)
+                Text(
+                  user.email,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
                   ),
                 ),
+              const SizedBox(height: 8),
+
+              // Role badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getRoleBadgeColor(user.role).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: _getRoleBadgeColor(user.role).withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_getRoleIcon(user.role),
+                        color: _getRoleBadgeColor(user.role), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      user.roleDisplayName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _getRoleBadgeColor(user.role),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 28),
 
               // MY ACTIVITY section
@@ -117,14 +144,28 @@ class ProfileScreen extends StatelessWidget {
                   iconColor: AppColors.primary,
                   iconBg: AppColors.primary.withOpacity(0.1),
                   title: AppStrings.myBookings,
-                  onTap: () {},
+                  onTap: () {
+                    // Navigate to Bookings tab (index 2)
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                          builder: (_) => const MainNavigation(initialIndex: 2)),
+                      (route) => false,
+                    );
+                  },
                 ),
                 _SettingItem(
                   icon: Icons.local_parking,
                   iconColor: AppColors.accent,
                   iconBg: AppColors.accent.withOpacity(0.1),
                   title: AppStrings.myParkings,
-                  onTap: () {},
+                  onTap: () {
+                    // Navigate to Saved/Explore tab (index 1)
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                          builder: (_) => const MainNavigation(initialIndex: 1)),
+                      (route) => false,
+                    );
+                  },
                 ),
               ]),
               const SizedBox(height: 12),
@@ -137,14 +178,21 @@ class ProfileScreen extends StatelessWidget {
                   iconColor: AppColors.info,
                   iconBg: AppColors.info.withOpacity(0.1),
                   title: AppStrings.paymentMethods,
-                  onTap: () {},
+                  onTap: () {
+                    _showInfoSnackbar(context, 'Payment methods coming soon');
+                  },
                 ),
                 _SettingItem(
                   icon: Icons.favorite,
                   iconColor: Colors.pink,
                   iconBg: Colors.pink.withOpacity(0.1),
                   title: AppStrings.favoriteSpots,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const SavedScreen()),
+                    );
+                  },
                 ),
               ]),
               const SizedBox(height: 12),
@@ -153,33 +201,53 @@ class ProfileScreen extends StatelessWidget {
               _buildSectionHeader(AppStrings.system),
               _buildSettingsCard([
                 _SettingItem(
+                  icon: Icons.dark_mode,
+                  iconColor: AppColors.textPrimary,
+                  iconBg: AppColors.textPrimary.withOpacity(0.1),
+                  title: 'Dark Mode',
+                  trailing: Switch(
+                    value: provider.themeMode == ThemeMode.dark,
+                    onChanged: (_) => provider.toggleTheme(),
+                    activeColor: AppColors.primary,
+                  ),
+                  onTap: () => provider.toggleTheme(),
+                ),
+                _SettingItem(
                   icon: Icons.notifications,
                   iconColor: AppColors.primary,
                   iconBg: AppColors.primary.withOpacity(0.1),
                   title: AppStrings.notifications,
-                  trailing: Container(
-                    width: 44,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                  ),
-                  onTap: () {},
+                  onTap: () {
+                    _showInfoSnackbar(context, 'Notifications settings coming soon');
+                  },
                 ),
                 _SettingItem(
                   icon: Icons.help_outline,
                   iconColor: AppColors.accent,
                   iconBg: AppColors.accent.withOpacity(0.1),
                   title: AppStrings.helpSupport,
-                  onTap: () {},
+                  onTap: () {
+                    _showInfoSnackbar(context, 'Help & Support coming soon');
+                  },
                 ),
                 _SettingItem(
-                  icon: Icons.settings,
+                  icon: Icons.info_outline,
                   iconColor: AppColors.textSecondary,
                   iconBg: AppColors.textSecondary.withOpacity(0.1),
-                  title: AppStrings.settings,
-                  onTap: () {},
+                  title: 'About',
+                  onTap: () {
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'Smart Park Connect',
+                      applicationVersion: AppStrings.appVersion,
+                      children: [
+                        Text(
+                          'Intelligent Parking Management System connecting drivers with private parking owners.',
+                          style: GoogleFonts.poppins(fontSize: 14),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ]),
               const SizedBox(height: 20),
@@ -232,6 +300,39 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Color _getRoleBadgeColor(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        return AppColors.error;
+      case UserRole.owner:
+        return AppColors.success;
+      case UserRole.user:
+        return AppColors.primary;
+    }
+  }
+
+  IconData _getRoleIcon(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        return Icons.admin_panel_settings;
+      case UserRole.owner:
+        return Icons.home_work;
+      case UserRole.user:
+        return Icons.directions_car;
+    }
+  }
+
+  void _showInfoSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
