@@ -138,6 +138,10 @@ class AppProvider extends ChangeNotifier {
   List<ParkingSpot> get pendingParkingSpots =>
       _parkingSpots.where((s) => s.status == 'pending').toList();
 
+  /// Approved spots only
+  List<ParkingSpot> get approvedParkingSpots =>
+      _parkingSpots.where((s) => s.status == 'approved').toList();
+
   String _selectedFilter = 'All';
   String get selectedFilter => _selectedFilter;
 

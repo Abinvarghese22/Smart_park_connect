@@ -18,6 +18,7 @@ class Booking {
   final String status; // confirmed, active, completed, cancelled
   final String paymentMethod;
   final String userName; // name of the person who booked
+  final String vehicleNumber; // vehicle registration number
 
   const Booking({
     required this.id,
@@ -36,11 +37,15 @@ class Booking {
     this.status = 'confirmed',
     this.paymentMethod = 'Visa •••• 4242',
     this.userName = '',
+    this.vehicleNumber = '',
   });
 
   /// Duration in hours
   double get durationHours =>
       endTime.difference(startTime).inMinutes / 60.0;
+
+  /// Duration in hours as integer
+  int get duration => endTime.difference(startTime).inHours;
 
   /// Formatted duration string
   String get durationFormatted {
@@ -67,6 +72,7 @@ class Booking {
         'status': status,
         'paymentMethod': paymentMethod,
         'userName': userName,
+        'vehicleNumber': vehicleNumber,
       };
 
   factory Booking.fromJson(Map<String, dynamic> json) => Booking(
@@ -86,6 +92,7 @@ class Booking {
         status: json['status'] ?? 'confirmed',
         paymentMethod: json['paymentMethod'] ?? '',
         userName: json['userName'] ?? '',
+        vehicleNumber: json['vehicleNumber'] ?? '',
       );
 
   String toJsonString() => jsonEncode(toJson());
@@ -109,6 +116,7 @@ class Booking {
     String? status,
     String? paymentMethod,
     String? userName,
+    String? vehicleNumber,
   }) =>
       Booking(
         id: id ?? this.id,
@@ -127,5 +135,6 @@ class Booking {
         status: status ?? this.status,
         paymentMethod: paymentMethod ?? this.paymentMethod,
         userName: userName ?? this.userName,
+        vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       );
 }

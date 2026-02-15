@@ -5,6 +5,10 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/app_provider.dart';
 import '../../models/user_model.dart';
 import '../../services/local_storage_service.dart';
+import 'admin_users_detail_screen.dart';
+import 'admin_spaces_detail_screen.dart';
+import 'admin_bookings_detail_screen.dart';
+import 'admin_revenue_detail_screen.dart';
 
 /// Admin dashboard screen with stats, user management, parking approvals
 class AdminDashboardScreen extends StatelessWidget {
@@ -46,12 +50,30 @@ class AdminDashboardScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildStatCard(
-                      'Total Users', '${provider.totalUsersCount}', Icons.people, AppColors.primary),
+                    context,
+                    'Total Users', 
+                    '${provider.totalUsersCount}', 
+                    Icons.people, 
+                    AppColors.primary,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminUsersDetailScreen()),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard('Total Spaces', '${provider.totalSpotsCount}',
-                      Icons.local_parking, AppColors.accent),
+                  child: _buildStatCard(
+                    context,
+                    'Total Spaces', 
+                    '${provider.totalSpotsCount}',
+                    Icons.local_parking, 
+                    AppColors.accent,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminSpacesDetailScreen()),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -59,13 +81,31 @@ class AdminDashboardScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard('Active Bookings', '${provider.activeBookingsCount}',
-                      Icons.calendar_today, AppColors.success),
+                  child: _buildStatCard(
+                    context,
+                    'Active Bookings', 
+                    '${provider.activeBookingsCount}',
+                    Icons.calendar_today, 
+                    AppColors.success,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminBookingsDetailScreen()),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard('Revenue', _formatRevenue(provider.totalRevenue),
-                      Icons.account_balance_wallet, AppColors.starYellow),
+                  child: _buildStatCard(
+                    context,
+                    'Revenue', 
+                    _formatRevenue(provider.totalRevenue),
+                    Icons.account_balance_wallet, 
+                    AppColors.starYellow,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminRevenueDetailScreen()),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -163,43 +203,63 @@ class AdminDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildStatCard(
-      String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+      BuildContext context, String label, String value, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.textHint,
+                ),
+              ],
             ),
-          ),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: AppColors.textSecondary,
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-        ],
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
