@@ -191,10 +191,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: DraggableScrollableSheet(
               initialChildSize: 0.52,
-              minChildSize: 0.35,
+              minChildSize: 0.06,
               maxChildSize: 0.9,
               snap: true,
-              snapSizes: const [0.35, 0.52, 0.9],
+              snapSizes: const [0.06, 0.52, 0.9],
               builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               Text(
-                                '${provider.filteredSpots.length * 5} spaces available',
+                                '${provider.filteredSpots.fold<int>(0, (sum, s) => sum + s.capacity)} spaces available',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   color: AppColors.textSecondary,
@@ -326,30 +326,67 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Horizontal parking cards
-                    SizedBox(
-                      height: 210,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: provider.filteredSpots.length,
-                        itemBuilder: (context, index) {
-                          final spot = provider.filteredSpots[index];
-                          return ParkingCardCompact(
-                            spot: spot,
-                            onTap: () {
-                              provider.selectSpot(spot);
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ParkingDetailsScreen(spot: spot),
+                    // Horizontal parking cards or empty state
+                    if (provider.filteredSpots.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: AppColors.backgroundLight,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.local_parking_rounded, size: 48, color: AppColors.textHint.withOpacity(0.5)),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No parking spots available',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
                                 ),
-                              );
-                            },
-                          );
-                        },
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Parking owners haven\'t added any spots yet.\nCheck back later!',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 210,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: provider.filteredSpots.length,
+                          itemBuilder: (context, index) {
+                            final spot = provider.filteredSpots[index];
+                            return ParkingCardCompact(
+                              spot: spot,
+                              onTap: () {
+                                provider.selectSpot(spot);
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ParkingDetailsScreen(spot: spot),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 20),
                   ],
                 ),

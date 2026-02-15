@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/parking_spot.dart';
+import '../../models/user_model.dart';
 import '../../providers/app_provider.dart';
 import '../booking/select_booking_time_screen.dart';
 
@@ -343,7 +347,7 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () {},
+                            onTap: () => _openInMaps(spot.latitude, spot.longitude),
                             child: Text(
                               AppStrings.openInMaps,
                               style: GoogleFonts.poppins(
@@ -356,45 +360,70 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      // Map placeholder
+                      // Real map with spot location
                       Container(
-                        height: 160,
+                        height: 180,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.cardBorder),
                         ),
-                        child: Stack(
-                          children: [
-                            // Simulated map
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: CustomPaint(
-                                size: const Size(double.infinity, 160),
-                                painter: _MiniMapPainter(),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: IgnorePointer(
+                            child: FlutterMap(
+                              options: MapOptions(
+                                initialCenter: LatLng(spot.latitude, spot.longitude),
+                                initialZoom: 15,
                               ),
-                            ),
-                            // Pin marker
-                            Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.location_on,
-                                      color: AppColors.primary, size: 36),
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          AppColors.primary.withOpacity(0.3),
-                                      shape: BoxShape.circle,
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.smartparkconnect.app',
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(spot.latitude, spot.longitude),
+                                      width: 40,
+                                      height: 40,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 3),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.red.withOpacity(0.4),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(Icons.local_parking, color: Colors.white, size: 18),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Coordinates info
+                      Row(
+                        children: [
+                          Icon(Icons.pin_drop_outlined, size: 14, color: AppColors.textHint),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${spot.latitude.toStringAsFixed(4)}, ${spot.longitude.toStringAsFixed(4)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
                       ),
                       // Bottom padding for the fixed bar
                       const SizedBox(height: 100),
@@ -405,96 +434,157 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
             ],
           ),
 
-          // Bottom fixed price + book bar
+          // Bottom fixed price + book bar (role-based)
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Price
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        AppStrings.totalPrice,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            '\u20B9${spot.pricePerHour.toInt()}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            ' / hr',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
+            child: Builder(
+              builder: (ctx) {
+                final role = ctx.watch<AppProvider>().currentUser.role;
+                final isOwner = role == UserRole.owner;
+                final isAdmin = role == UserRole.admin;
+                return Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, -4),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  // Book Now button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              SelectBookingTimeScreen(spot: spot),
+                  child: Row(
+                    children: [
+                      // Price
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            AppStrings.totalPrice,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                '\u20B9${spot.pricePerHour.toInt()}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                ' / hr',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      // Role-based action button
+                      if (isOwner || isAdmin)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: AppColors.backgroundLight,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isOwner ? Icons.visibility_outlined : Icons.admin_panel_settings_outlined,
+                                color: AppColors.textSecondary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isOwner ? 'View Only' : 'Admin View',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    SelectBookingTimeScreen(spot: spot),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            AppStrings.bookNow,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      AppStrings.bookNow,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openInMaps(double lat, double lng) async {
+    final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+    
+    try {
+      if (await canLaunchUrl(geoUrl)) {
+        await launchUrl(geoUrl);
+      } else if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open maps')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening maps: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildCircleButton(IconData icon, VoidCallback onTap, {Color? color}) {
@@ -561,52 +651,3 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
   }
 }
 
-/// Mini map painter for the location section
-class _MiniMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Light green/blue map background
-    final bgPaint = Paint()..color = const Color(0xFFE0F2F1);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    // Roads
-    final roadPaint = Paint()
-      ..color = Colors.white.withOpacity(0.8)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(
-        Offset(0, size.height * 0.4),
-        Offset(size.width, size.height * 0.4),
-        roadPaint);
-    canvas.drawLine(
-        Offset(size.width * 0.5, 0),
-        Offset(size.width * 0.5, size.height),
-        roadPaint);
-    canvas.drawLine(
-        Offset(0, size.height * 0.7),
-        Offset(size.width, size.height * 0.7),
-        roadPaint);
-
-    // Blocks
-    final blockPaint = Paint()..color = const Color(0xFFB2DFDB);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(10, 10, size.width * 0.35, size.height * 0.25),
-        const Radius.circular(4),
-      ),
-      blockPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.6, size.height * 0.5,
-            size.width * 0.3, size.height * 0.15),
-        const Radius.circular(4),
-      ),
-      blockPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
