@@ -4,9 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/app_provider.dart';
 import '../../models/user_model.dart';
-import '../../services/local_storage_service.dart';
 
-/// Detailed users screen showing all users with filtering and management options
 class AdminUsersDetailScreen extends StatefulWidget {
   const AdminUsersDetailScreen({super.key});
 
@@ -14,336 +12,293 @@ class AdminUsersDetailScreen extends StatefulWidget {
   State<AdminUsersDetailScreen> createState() => _AdminUsersDetailScreenState();
 }
 
-class _AdminUsersDetailScreenState extends State<AdminUsersDetailScreen> {
-  String _selectedFilter = 'All';
-  final List<String> _filterOptions = ['All', 'Admins', 'Owners', 'Users'];
+class _AdminUsersDetailScreenState extends State<AdminUsersDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<UserModel> _filter(List<UserModel> users) {
+    switch (_tabController.index) {
+      case 1: return users.where((u) => u.role == UserRole.admin).toList();
+      case 2: return users.where((u) => u.role == UserRole.owner).toList();
+      case 3: return users.where((u) => u.role == UserRole.user).toList();
+      default: return users;
+    }
+  }
+
+  int _count(List<UserModel> users, int tab) {
+    switch (tab) {
+      case 1: return users.where((u) => u.role == UserRole.admin).length;
+      case 2: return users.where((u) => u.role == UserRole.owner).length;
+      case 3: return users.where((u) => u.role == UserRole.user).length;
+      default: return users.length;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final allUsers = provider.allUsers;
-    
-    // Filter users based on selected filter
-    final filteredUsers = _getFilteredUsers(allUsers);
+    final filtered = _filter(allUsers);
+    final tabs = ['All', 'Admins', 'Owners', 'Drivers'];
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Total Users (${allUsers.length})',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Filter tabs
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: _filterOptions.map((filter) {
-                final isSelected = _selectedFilter == filter;
-                final count = _getFilterCount(allUsers, filter);
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = filter),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.backgroundLight,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '$count',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? Colors.white : AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            filter,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, _) => [
+          SliverAppBar(
+            expandedHeight: 180,
+            pinned: true,
+            backgroundColor: AppColors.primary,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-          ),
-          
-          // Users list
-          Expanded(
-            child: filteredUsers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF5B4CFF), Color(0xFF7C3AED)],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: AppColors.textHint.withOpacity(0.5),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${allUsers.length}',
+                                style: GoogleFonts.poppins(fontSize: 48, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
+                            const SizedBox(height: 4),
+                            Text('Total Users',
+                                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.85))),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ${_selectedFilter.toLowerCase()} found',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: AppColors.textSecondary,
-                          ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _miniPill(Icons.shield_outlined, '${_count(allUsers, 1)}', 'Admins'),
+                            const SizedBox(height: 6),
+                            _miniPill(Icons.business_outlined, '${_count(allUsers, 2)}', 'Owners'),
+                            const SizedBox(height: 6),
+                            _miniPill(Icons.directions_car_outlined, '${_count(allUsers, 3)}', 'Drivers'),
+                          ],
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filteredUsers.length,
-                    itemBuilder: (context, index) {
-                      final user = filteredUsers[index];
-                      return _buildUserCard(user);
-                    },
                   ),
+                ),
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(52),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textHint,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
+                  tabs: List.generate(4, (i) => Tab(text: '${tabs[i]} (${_count(allUsers, i)})')),
+                ),
+              ),
+            ),
           ),
         ],
+        body: filtered.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), shape: BoxShape.circle),
+                      child: Icon(Icons.people_outline, size: 40, color: AppColors.primary.withOpacity(0.4)),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('No users found', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                    const SizedBox(height: 4),
+                    Text('Try a different filter', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textHint)),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) => _buildUserCard(filtered[i]),
+              ),
       ),
     );
   }
 
-  List<UserModel> _getFilteredUsers(List<UserModel> users) {
-    switch (_selectedFilter) {
-      case 'Admins':
-        return users.where((u) => u.role == UserRole.admin).toList();
-      case 'Owners':
-        return users.where((u) => u.role == UserRole.owner).toList();
-      case 'Users':
-        return users.where((u) => u.role == UserRole.user).toList();
-      default:
-        return users;
-    }
-  }
-
-  int _getFilterCount(List<UserModel> users, String filter) {
-    switch (filter) {
-      case 'Admins':
-        return users.where((u) => u.role == UserRole.admin).length;
-      case 'Owners':
-        return users.where((u) => u.role == UserRole.owner).length;
-      case 'Users':
-        return users.where((u) => u.role == UserRole.user).length;
-      default:
-        return users.length;
-    }
+  Widget _miniPill(IconData icon, String count, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white.withOpacity(0.9)),
+          const SizedBox(width: 6),
+          Text(count, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+          const SizedBox(width: 4),
+          Text(label, style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.75))),
+        ],
+      ),
+    );
   }
 
   Widget _buildUserCard(UserModel user) {
-    final roleLabel = _getRoleLabel(user.role);
-    final roleColor = _getRoleColor(user.role);
-    final statusColor = _getStatusColor(user);
-    final statusLabel = _getStatusLabel(user);
+    final roleColor = _roleColor(user.role);
+    final roleLabel = _roleLabel(user.role);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Gradient-ring avatar
+            Container(
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: [roleColor, roleColor.withOpacity(0.4)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              ),
+              child: CircleAvatar(
                 radius: 24,
-                backgroundColor: roleColor.withOpacity(0.1),
+                backgroundColor: Colors.white,
                 child: Text(
                   user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    color: roleColor,
-                    fontSize: 16,
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: roleColor),
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.name,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      user.email,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    if (user.phone.isNotEmpty)
-                      Text(
-                        user.phone,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: roleColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      roleLabel,
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: roleColor,
-                      ),
-                    ),
-                  ),
-                  if (user.role == UserRole.owner) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        statusLabel,
-                        style: GoogleFonts.poppins(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: statusColor,
-                        ),
-                      ),
-                    ),
+                  Text(user.name, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(user.email, style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary)),
+                  if (user.phone.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(user.phone, style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textHint)),
                   ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6, runSpacing: 4,
+                    children: [
+                      _statChip(Icons.calendar_today_outlined, '${user.totalBookings}'),
+                      if (user.role == UserRole.owner) ...[
+                        _statChip(Icons.local_parking, '${user.totalParkings}'),
+                        _statChip(Icons.account_balance_wallet_outlined, '₹${user.earnings.toStringAsFixed(0)}'),
+                      ],
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // User stats
-          Row(
-            children: [
-              _buildStatChip(Icons.calendar_today, '${user.totalBookings} Bookings'),
-              const SizedBox(width: 8),
-              if (user.role == UserRole.owner) ...[
-                _buildStatChip(Icons.local_parking, '${user.totalParkings} Spots'),
-                const SizedBox(width: 8),
-                _buildStatChip(Icons.account_balance_wallet, '₹${user.earnings.toStringAsFixed(0)}'),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [roleColor.withOpacity(0.15), roleColor.withOpacity(0.08)]),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(roleLabel, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: roleColor)),
+                ),
+                if (user.role == UserRole.owner) ...[
+                  const SizedBox(height: 6),
+                  _approvalBadge(user),
+                ],
               ],
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: AppColors.textHint),
+          const SizedBox(width: 4),
+          Text(text, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
         ],
       ),
     );
   }
 
-  Widget _buildStatChip(IconData icon, String label) {
+  Widget _approvalBadge(UserModel user) {
+    Color c; String t;
+    switch (user.approvalStatus) {
+      case ApprovalStatus.approved: c = AppColors.success; t = 'Approved'; break;
+      case ApprovalStatus.pending: c = AppColors.warning; t = 'Pending'; break;
+      case ApprovalStatus.rejected: c = AppColors.error; t = 'Rejected'; break;
+    }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
+        color: c.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: c.withOpacity(0.3), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: AppColors.textHint),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+          const SizedBox(width: 5),
+          Text(t, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: c)),
         ],
       ),
     );
   }
 
-  String _getRoleLabel(UserRole role) {
-    switch (role) {
-      case UserRole.admin:
-        return 'Admin';
-      case UserRole.owner:
-        return 'Owner';
-      case UserRole.user:
-        return 'Driver';
-    }
+  String _roleLabel(UserRole role) {
+    switch (role) { case UserRole.admin: return 'Admin'; case UserRole.owner: return 'Owner'; case UserRole.user: return 'Driver'; }
   }
 
-  Color _getRoleColor(UserRole role) {
-    switch (role) {
-      case UserRole.admin:
-        return AppColors.error;
-      case UserRole.owner:
-        return AppColors.accent;
-      case UserRole.user:
-        return AppColors.info;
-    }
-  }
-
-  Color _getStatusColor(UserModel user) {
-    if (user.role != UserRole.owner) return AppColors.success;
-    switch (user.approvalStatus) {
-      case ApprovalStatus.approved:
-        return AppColors.success;
-      case ApprovalStatus.pending:
-        return AppColors.warning;
-      case ApprovalStatus.rejected:
-        return AppColors.error;
-    }
-  }
-
-  String _getStatusLabel(UserModel user) {
-    if (user.role != UserRole.owner) return 'ACTIVE';
-    switch (user.approvalStatus) {
-      case ApprovalStatus.approved:
-        return 'APPROVED';
-      case ApprovalStatus.pending:
-        return 'PENDING';
-      case ApprovalStatus.rejected:
-        return 'REJECTED';
-    }
+  Color _roleColor(UserRole role) {
+    switch (role) { case UserRole.admin: return AppColors.error; case UserRole.owner: return AppColors.accent; case UserRole.user: return AppColors.info; }
   }
 }

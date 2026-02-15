@@ -5,7 +5,6 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/app_provider.dart';
 import '../../models/parking_spot.dart';
 
-/// Detailed parking spaces screen showing all parking spots with filtering
 class AdminSpacesDetailScreen extends StatefulWidget {
   const AdminSpacesDetailScreen({super.key});
 
@@ -13,363 +12,286 @@ class AdminSpacesDetailScreen extends StatefulWidget {
   State<AdminSpacesDetailScreen> createState() => _AdminSpacesDetailScreenState();
 }
 
-class _AdminSpacesDetailScreenState extends State<AdminSpacesDetailScreen> {
-  String _selectedFilter = 'All';
-  final List<String> _filterOptions = ['All', 'Approved', 'Pending', 'Rejected'];
+class _AdminSpacesDetailScreenState extends State<AdminSpacesDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() { _tabController.dispose(); super.dispose(); }
+
+  List<ParkingSpot> _filter(List<ParkingSpot> spots) {
+    switch (_tabController.index) {
+      case 1: return spots.where((s) => s.status == 'approved').toList();
+      case 2: return spots.where((s) => s.status == 'pending').toList();
+      case 3: return spots.where((s) => s.status == 'rejected').toList();
+      default: return spots;
+    }
+  }
+
+  int _cnt(List<ParkingSpot> spots, int tab) {
+    switch (tab) {
+      case 1: return spots.where((s) => s.status == 'approved').length;
+      case 2: return spots.where((s) => s.status == 'pending').length;
+      case 3: return spots.where((s) => s.status == 'rejected').length;
+      default: return spots.length;
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) { case 'approved': return AppColors.success; case 'pending': return AppColors.warning; case 'rejected': return AppColors.error; default: return AppColors.textHint; }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final allSpots = provider.allParkingSpots;
-    
-    // Filter spots based on selected filter
-    final filteredSpots = _getFilteredSpots(allSpots);
+    final filtered = _filter(allSpots);
+    final tabs = ['All', 'Approved', 'Pending', 'Rejected'];
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Total Spaces (${allSpots.length})',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Filter tabs
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: _filterOptions.map((filter) {
-                final isSelected = _selectedFilter == filter;
-                final count = _getFilterCount(allSpots, filter);
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = filter),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.backgroundLight,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '$count',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? Colors.white : AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            filter,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, _) => [
+          SliverAppBar(
+            expandedHeight: 180,
+            pinned: true,
+            backgroundColor: AppColors.accent,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-          ),
-          
-          // Spaces list
-          Expanded(
-            child: filteredSpots.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    colors: [Color(0xFF7C3AED), Color(0xFF5B4CFF)],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.local_parking,
-                          size: 64,
-                          color: AppColors.textHint.withOpacity(0.5),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${allSpots.length}',
+                                style: GoogleFonts.poppins(fontSize: 48, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
+                            const SizedBox(height: 4),
+                            Text('Parking Spaces',
+                                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.85))),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ${_selectedFilter.toLowerCase()} spaces found',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: AppColors.textSecondary,
-                          ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _pill(Icons.check_circle_outline, '${_cnt(allSpots, 1)}', 'Live', AppColors.success),
+                            const SizedBox(height: 6),
+                            _pill(Icons.pending_outlined, '${_cnt(allSpots, 2)}', 'Pending', AppColors.warning),
+                            const SizedBox(height: 6),
+                            _pill(Icons.cancel_outlined, '${_cnt(allSpots, 3)}', 'Rejected', AppColors.error),
+                          ],
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filteredSpots.length,
-                    itemBuilder: (context, index) {
-                      final spot = filteredSpots[index];
-                      return _buildSpaceCard(spot);
-                    },
                   ),
+                ),
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(52),
+              child: Container(
+                decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.accent,
+                  unselectedLabelColor: AppColors.textHint,
+                  indicatorColor: AppColors.accent,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
+                  tabs: List.generate(4, (i) => Tab(text: '${tabs[i]} (${_cnt(allSpots, i)})')),
+                ),
+              ),
+            ),
           ),
         ],
+        body: filtered.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 80, height: 80, decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.08), shape: BoxShape.circle),
+                      child: Icon(Icons.local_parking, size: 40, color: AppColors.accent.withOpacity(0.4))),
+                    const SizedBox(height: 16),
+                    Text('No spaces found', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                    const SizedBox(height: 4),
+                    Text('Try a different filter', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textHint)),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) => _spaceCard(filtered[i]),
+              ),
       ),
     );
   }
 
-  List<ParkingSpot> _getFilteredSpots(List<ParkingSpot> spots) {
-    switch (_selectedFilter) {
-      case 'Approved':
-        return spots.where((s) => s.status == 'approved').toList();
-      case 'Pending':
-        return spots.where((s) => s.status == 'pending').toList();
-      case 'Rejected':
-        return spots.where((s) => s.status == 'rejected').toList();
-      default:
-        return spots;
-    }
-  }
-
-  int _getFilterCount(List<ParkingSpot> spots, String filter) {
-    switch (filter) {
-      case 'Approved':
-        return spots.where((s) => s.status == 'approved').length;
-      case 'Pending':
-        return spots.where((s) => s.status == 'pending').length;
-      case 'Rejected':
-        return spots.where((s) => s.status == 'rejected').length;
-      default:
-        return spots.length;
-    }
-  }
-
-  Widget _buildSpaceCard(ParkingSpot spot) {
-    final statusColor = _getStatusColor(spot.status);
-    final statusLabel = spot.status.toUpperCase();
-
+  Widget _pill(IconData icon, String count, String label, Color dotColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(count, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+        const SizedBox(width: 4),
+        Text(label, style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.75))),
+      ]),
+    );
+  }
+
+  Widget _spaceCard(ParkingSpot spot) {
+    final sc = _statusColor(spot.status);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              spot.imageUrl,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: 120,
-                width: double.infinity,
-                color: AppColors.shimmerBase,
-                child: const Center(
-                  child: Icon(Icons.local_parking, size: 40, color: AppColors.textHint),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          // Header row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Image with status overlay
+          Stack(
             children: [
-              Expanded(
-                child: Text(
-                  spot.name,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: Image.network(spot.imageUrl, height: 140, width: double.infinity, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(height: 140, width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [AppColors.accent.withOpacity(0.1), AppColors.primary.withOpacity(0.05)]),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: const Center(child: Icon(Icons.local_parking, size: 48, color: AppColors.textHint)))),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          
-          // Owner and location
-          Text(
-            'By ${spot.ownerName}',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          Text(
-            spot.address,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: AppColors.textHint,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 12),
-          
-          // Stats row
-          Row(
-            children: [
-              _buildInfoChip(Icons.currency_rupee, '₹${spot.pricePerHour.toStringAsFixed(0)}/hr'),
-              const SizedBox(width: 8),
-              _buildInfoChip(Icons.local_parking, spot.type.toUpperCase()),
-              const SizedBox(width: 8),
-              _buildInfoChip(Icons.people, '${spot.capacity} spots'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          
-          // Amenities
-          if (spot.amenities.isNotEmpty) ...[
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: spot.amenities.take(3).map((amenity) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              // Gradient overlay
+              Positioned.fill(
+                child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black.withOpacity(0.4)]),
                   ),
-                  child: Text(
-                    amenity,
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-          
-          // Action buttons for pending spots
-          if (spot.status == 'pending') ...[
-            const SizedBox(height: 12),
-            Row(
+                ),
+              ),
+              // Status badge
+              Positioned(top: 12, right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: sc, borderRadius: BorderRadius.circular(8)),
+                  child: Text(spot.status.toUpperCase(), style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5)),
+                ),
+              ),
+              // Price badge
+              Positioned(bottom: 12, left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                  child: Text('\u20B9${spot.pricePerHour.toStringAsFixed(0)}/hr',
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                ),
+              ),
+            ],
+          ),
+          // Details
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      context.read<AppProvider>().rejectParkingSpot(spot.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${spot.name} rejected', style: GoogleFonts.poppins()),
-                          backgroundColor: AppColors.error,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                Text(spot.name, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  Icon(Icons.person_outline, size: 14, color: AppColors.textHint),
+                  const SizedBox(width: 4),
+                  Text(spot.ownerName, style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary)),
+                ]),
+                const SizedBox(height: 2),
+                Row(children: [
+                  Icon(Icons.location_on_outlined, size: 14, color: AppColors.textHint),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(spot.address, style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textHint), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                ]),
+                const SizedBox(height: 12),
+                // Info chips
+                Wrap(spacing: 8, runSpacing: 6, children: [
+                  _chip(Icons.directions_car_outlined, spot.type[0].toUpperCase() + spot.type.substring(1)),
+                  _chip(Icons.event_seat_outlined, '${spot.capacity} spots'),
+                  ...spot.amenities.take(2).map((a) => _chip(Icons.star_outline, a)),
+                ]),
+                // Approve/Reject for pending
+                if (spot.status == 'pending') ...[
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          context.read<AppProvider>().rejectParkingSpot(spot.id);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${spot.name} rejected'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+                        },
+                        icon: const Icon(Icons.close, size: 16),
+                        label: Text('Reject', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
+                        style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 12)),
+                      ),
                     ),
-                    child: Text('Reject', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      context.read<AppProvider>().approveParkingSpot(spot.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${spot.name} approved!', style: GoogleFonts.poppins()),
-                          backgroundColor: AppColors.success,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      elevation: 0,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          context.read<AppProvider>().approveParkingSpot(spot.id);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${spot.name} approved!'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
+                        },
+                        icon: const Icon(Icons.check, size: 16),
+                        label: Text('Approve', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 12), elevation: 0),
+                      ),
                     ),
-                    child: Text('Approve', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12)),
-                  ),
-                ),
+                  ]),
+                ],
               ],
             ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: AppColors.textHint),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
           ),
         ],
       ),
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'approved':
-        return AppColors.success;
-      case 'pending':
-        return AppColors.warning;
-      case 'rejected':
-        return AppColors.error;
-      default:
-        return AppColors.textHint;
-    }
+  Widget _chip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 13, color: AppColors.textHint),
+        const SizedBox(width: 4),
+        Text(text, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+      ]),
+    );
   }
 }

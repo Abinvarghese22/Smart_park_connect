@@ -5,7 +5,6 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/app_provider.dart';
 import '../../models/booking.dart';
 
-/// Detailed bookings screen showing all bookings with filtering and management
 class AdminBookingsDetailScreen extends StatefulWidget {
   const AdminBookingsDetailScreen({super.key});
 
@@ -13,336 +12,278 @@ class AdminBookingsDetailScreen extends StatefulWidget {
   State<AdminBookingsDetailScreen> createState() => _AdminBookingsDetailScreenState();
 }
 
-class _AdminBookingsDetailScreenState extends State<AdminBookingsDetailScreen> {
-  String _selectedFilter = 'All';
-  final List<String> _filterOptions = ['All', 'Active', 'Confirmed', 'Completed', 'Cancelled'];
+class _AdminBookingsDetailScreenState extends State<AdminBookingsDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() { _tabController.dispose(); super.dispose(); }
+
+  List<Booking> _filter(List<Booking> bookings) {
+    switch (_tabController.index) {
+      case 1: return bookings.where((b) => b.status == 'active' || b.status == 'confirmed').toList();
+      case 2: return bookings.where((b) => b.status == 'completed').toList();
+      case 3: return bookings.where((b) => b.status == 'cancelled').toList();
+      default: return bookings;
+    }
+  }
+
+  int _cnt(List<Booking> b, int tab) {
+    switch (tab) {
+      case 1: return b.where((x) => x.status == 'active' || x.status == 'confirmed').length;
+      case 2: return b.where((x) => x.status == 'completed').length;
+      case 3: return b.where((x) => x.status == 'cancelled').length;
+      default: return b.length;
+    }
+  }
+
+  Color _sc(String s) {
+    switch (s) { case 'confirmed': return AppColors.primary; case 'active': return AppColors.success; case 'completed': return AppColors.textSecondary; case 'cancelled': return AppColors.error; default: return AppColors.textHint; }
+  }
+
+  IconData _si(String s) {
+    switch (s) { case 'confirmed': return Icons.schedule; case 'active': return Icons.play_circle_outline; case 'completed': return Icons.check_circle_outline; case 'cancelled': return Icons.cancel_outlined; default: return Icons.help_outline; }
+  }
+
+  String _fmtDate(DateTime d) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  String _fmtTime(DateTime d) {
+    final h = d.hour; final m = d.minute.toString().padLeft(2, '0');
+    final p = h >= 12 ? 'PM' : 'AM';
+    final dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+    return '$dh:$m $p';
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
-    final allBookings = provider.allBookings;
-    
-    // Filter bookings based on selected filter
-    final filteredBookings = _getFilteredBookings(allBookings);
+    final all = provider.allBookings;
+    final filtered = _filter(all);
+    final totalRev = all.where((b) => b.status == 'completed').fold(0.0, (s, b) => s + b.totalPrice);
+    final tabs = ['All', 'Active', 'Done', 'Cancelled'];
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Active Bookings (${allBookings.length})',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Filter tabs
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(20),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filterOptions.map((filter) {
-                  final isSelected = _selectedFilter == filter;
-                  final count = _getFilterCount(allBookings, filter);
-                  return Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedFilter = filter),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.backgroundLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, _) => [
+          SliverAppBar(
+            expandedHeight: 180,
+            pinned: true,
+            backgroundColor: AppColors.success,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '$count',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: isSelected ? Colors.white : AppColors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              filter,
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: isSelected ? Colors.white : AppColors.textSecondary,
-                              ),
-                            ),
+                            Text('${all.length}',
+                                style: GoogleFonts.poppins(fontSize: 48, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
+                            const SizedBox(height: 4),
+                            Text('Total Bookings',
+                                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.85))),
                           ],
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          
-          // Bookings list
-          Expanded(
-            child: filteredBookings.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 64,
-                          color: AppColors.textHint.withOpacity(0.5),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ${_selectedFilter.toLowerCase()} bookings found',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: AppColors.textSecondary,
-                          ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _pill(Icons.play_circle_outline, '${_cnt(all, 1)}', 'Active'),
+                            const SizedBox(height: 6),
+                            _pill(Icons.check_circle_outline, '${_cnt(all, 2)}', 'Done'),
+                            const SizedBox(height: 6),
+                            _pill(Icons.account_balance_wallet_outlined, '\u20B9${totalRev.toStringAsFixed(0)}', 'Revenue'),
+                          ],
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filteredBookings.length,
-                    itemBuilder: (context, index) {
-                      final booking = filteredBookings[index];
-                      return _buildBookingCard(booking);
-                    },
                   ),
+                ),
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(52),
+              child: Container(
+                decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.success,
+                  unselectedLabelColor: AppColors.textHint,
+                  indicatorColor: AppColors.success,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
+                  tabs: List.generate(4, (i) => Tab(text: '${tabs[i]} (${_cnt(all, i)})')),
+                ),
+              ),
+            ),
           ),
         ],
+        body: filtered.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 80, height: 80, decoration: BoxDecoration(color: AppColors.success.withOpacity(0.08), shape: BoxShape.circle),
+                      child: Icon(Icons.calendar_today, size: 40, color: AppColors.success.withOpacity(0.4))),
+                    const SizedBox(height: 16),
+                    Text('No bookings found', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                    const SizedBox(height: 4),
+                    Text('Try a different filter', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textHint)),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) => _bookingCard(filtered[i]),
+              ),
       ),
     );
   }
 
-  List<Booking> _getFilteredBookings(List<Booking> bookings) {
-    switch (_selectedFilter) {
-      case 'Active':
-        return bookings.where((b) => b.status == 'active').toList();
-      case 'Confirmed':
-        return bookings.where((b) => b.status == 'confirmed').toList();
-      case 'Completed':
-        return bookings.where((b) => b.status == 'completed').toList();
-      case 'Cancelled':
-        return bookings.where((b) => b.status == 'cancelled').toList();
-      default:
-        return bookings;
-    }
-  }
-
-  int _getFilterCount(List<Booking> bookings, String filter) {
-    switch (filter) {
-      case 'Active':
-        return bookings.where((b) => b.status == 'active').length;
-      case 'Confirmed':
-        return bookings.where((b) => b.status == 'confirmed').length;
-      case 'Completed':
-        return bookings.where((b) => b.status == 'completed').length;
-      case 'Cancelled':
-        return bookings.where((b) => b.status == 'cancelled').length;
-      default:
-        return bookings.length;
-    }
-  }
-
-  Widget _buildBookingCard(Booking booking) {
-    final statusColor = _getStatusColor(booking.status);
-    final statusLabel = booking.status.toUpperCase();
-
+  Widget _pill(IconData icon, String count, String label) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: Colors.white.withOpacity(0.9)),
+        const SizedBox(width: 6),
+        Text(count, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+        const SizedBox(width: 4),
+        Text(label, style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.75))),
+      ]),
+    );
+  }
+
+  Widget _bookingCard(Booking b) {
+    final sc = _sc(b.status);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                child: Text(
-                  booking.userName.isNotEmpty ? booking.userName[0].toUpperCase() : 'U',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.userName.isEmpty ? 'User' : booking.userName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      booking.parkingName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '₹${booking.totalPrice.toStringAsFixed(0)}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: GoogleFonts.poppins(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // Booking details
+          // Top colored accent bar
           Container(
-            padding: const EdgeInsets.all(12),
+            height: 4,
             decoration: BoxDecoration(
-              color: AppColors.backgroundLight,
-              borderRadius: BorderRadius.circular(8),
+              color: sc,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow(Icons.calendar_today, 'Date', _formatDate(booking.startTime)),
-                const SizedBox(height: 8),
-                _buildDetailRow(Icons.access_time, 'Time', '${_formatTime(booking.startTime)} - ${_formatTime(booking.endTime)}'),
-                const SizedBox(height: 8),
-                _buildDetailRow(Icons.timer, 'Duration', '${booking.duration} hours'),
-                const SizedBox(height: 8),
-                _buildDetailRow(Icons.directions_car, 'Vehicle', booking.vehicleNumber),
+                // Header
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: [sc, sc.withOpacity(0.4)]),
+                    ),
+                    child: CircleAvatar(
+                      radius: 20, backgroundColor: Colors.white,
+                      child: Text(b.userName.isNotEmpty ? b.userName[0].toUpperCase() : 'U',
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: sc)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(b.userName.isEmpty ? 'User' : b.userName,
+                          style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                      Text(b.parkingName, style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary)),
+                    ],
+                  )),
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('\u20B9${b.totalPrice.toStringAsFixed(0)}',
+                        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: sc.withOpacity(0.1), borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: sc.withOpacity(0.3), width: 0.5)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(_si(b.status), size: 12, color: sc),
+                        const SizedBox(width: 4),
+                        Text(b.status.toUpperCase(), style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: sc, letterSpacing: 0.3)),
+                      ]),
+                    ),
+                  ]),
+                ]),
+                const SizedBox(height: 14),
+                // Detail grid
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(14)),
+                  child: Row(children: [
+                    Expanded(child: _detailItem(Icons.calendar_today_outlined, 'Date', _fmtDate(b.startTime))),
+                    Container(width: 1, height: 36, color: AppColors.cardBorder),
+                    Expanded(child: _detailItem(Icons.access_time, 'Time', _fmtTime(b.startTime))),
+                    Container(width: 1, height: 36, color: AppColors.cardBorder),
+                    Expanded(child: _detailItem(Icons.timer_outlined, 'Duration', '${b.duration}h')),
+                  ]),
+                ),
+                const SizedBox(height: 10),
+                // Location row
+                Row(children: [
+                  Icon(Icons.location_on_outlined, size: 14, color: AppColors.textHint),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(b.parkingAddress, style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textHint), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                ]),
+                if (b.vehicleNumber.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Icon(Icons.directions_car_outlined, size: 14, color: AppColors.textHint),
+                    const SizedBox(width: 4),
+                    Text(b.vehicleNumber, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                  ]),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          
-          // Location info
-          Row(
-            children: [
-              Icon(Icons.location_on, size: 16, color: AppColors.textHint),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  booking.parkingAddress,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: AppColors.textHint,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: AppColors.textHint),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: AppColors.textHint,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'confirmed':
-        return AppColors.primary;
-      case 'active':
-        return AppColors.success;
-      case 'completed':
-        return AppColors.textSecondary;
-      case 'cancelled':
-        return AppColors.error;
-      default:
-        return AppColors.textHint;
-    }
-  }
-
-  String _formatDate(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-  }
-
-  String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-    return '$displayHour:$minute $period';
+  Widget _detailItem(IconData icon, String label, String value) {
+    return Column(children: [
+      Icon(icon, size: 16, color: AppColors.textHint),
+      const SizedBox(height: 4),
+      Text(value, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+      Text(label, style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textHint)),
+    ]);
   }
 }
