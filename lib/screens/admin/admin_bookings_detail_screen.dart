@@ -276,147 +276,323 @@ class _AdminBookingsDetailScreenState extends State<AdminBookingsDetailScreen>
   Widget _bookingCard(Booking b) {
     final sc = _sc(b.status);
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 6))
         ],
       ),
       child: Column(
         children: [
           // Top colored accent bar
           Container(
-            height: 4,
+            height: 5,
             decoration: BoxDecoration(
-              color: sc,
+              gradient: LinearGradient(
+                colors: [sc, sc.withValues(alpha: 0.7)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(20)),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(2.5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                          colors: [sc, sc.withValues(alpha: 0.4)]),
-                    ),
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.white,
+                // Booking ID and Status Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
                       child: Text(
-                          b.userName.isNotEmpty
-                              ? b.userName[0].toUpperCase()
-                              : 'U',
-                          style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: sc)),
+                        'ID: ${b.id.substring(0, 8).toUpperCase()}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                          color: sc.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: sc.withValues(alpha: 0.3), width: 1)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(_si(b.status), size: 14, color: sc),
+                        const SizedBox(width: 6),
+                        Text(b.status.toUpperCase(),
+                            style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: sc,
+                                letterSpacing: 0.5)),
+                      ]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Customer Information Section
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.1),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(b.userName.isEmpty ? 'User' : b.userName,
+                      Row(
+                        children: [
+                          Icon(Icons.person_outline,
+                              size: 16, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text('CUSTOMER DETAILS',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                  letterSpacing: 1)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(2.5),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(colors: [
+                              AppColors.primary,
+                              AppColors.primary.withValues(alpha: 0.6)
+                            ]),
+                          ),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.white,
+                            child: Text(
+                                b.userName.isNotEmpty
+                                    ? b.userName[0].toUpperCase()
+                                    : 'U',
+                                style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  b.userName.isEmpty
+                                      ? 'Unknown User'
+                                      : b.userName,
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary)),
+                              if (b.userId.isNotEmpty)
+                                Text(
+                                    'User ID: ${b.userId.substring(0, 8).toUpperCase()}',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary)),
+                              Text('Payment: ${b.paymentMethod}',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 11, color: AppColors.textHint)),
+                            ],
+                          ),
+                        ),
+                      ]),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Parking Spot & Owner Information Section
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.local_parking_outlined,
+                              size: 16, color: AppColors.accent),
+                          const SizedBox(width: 6),
+                          Text('PARKING SPOT & OWNER',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.accent,
+                                  letterSpacing: 1)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(b.parkingName,
                           style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary)),
-                      Text(b.parkingName,
-                          style: GoogleFonts.poppins(
-                              fontSize: 12, color: AppColors.textSecondary)),
-                    ],
-                  )),
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text('\u20B9${b.totalPrice.toStringAsFixed(0)}',
-                        style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                          color: sc.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                              color: sc.withValues(alpha: 0.3), width: 0.5)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(_si(b.status), size: 12, color: sc),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 13, color: AppColors.textHint),
                         const SizedBox(width: 4),
-                        Text(b.status.toUpperCase(),
-                            style: GoogleFonts.poppins(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: sc,
-                                letterSpacing: 0.3)),
+                        Expanded(
+                            child: Text(b.parkingAddress,
+                                style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis)),
                       ]),
-                    ),
-                  ]),
-                ]),
+                      if (b.ownerId.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Icon(Icons.business_center_outlined,
+                              size: 13, color: AppColors.textHint),
+                          const SizedBox(width: 4),
+                          Text('Owner ID: ',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 11, color: AppColors.textHint)),
+                          Text(b.ownerId.substring(0, 8).toUpperCase(),
+                              style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.accent)),
+                        ]),
+                      ],
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 14),
-                // Detail grid
+
+                // Booking Details Grid
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                       color: AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(14)),
-                  child: Row(children: [
-                    Expanded(
-                        child: _detailItem(Icons.calendar_today_outlined,
-                            'Date', _fmtDate(b.startTime))),
-                    Container(
-                        width: 1, height: 36, color: AppColors.cardBorder),
-                    Expanded(
-                        child: _detailItem(
-                            Icons.access_time, 'Time', _fmtTime(b.startTime))),
-                    Container(
-                        width: 1, height: 36, color: AppColors.cardBorder),
-                    Expanded(
-                        child: _detailItem(Icons.timer_outlined, 'Duration',
-                            '${b.duration}h')),
-                  ]),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.cardBorder.withValues(alpha: 0.5),
+                      )),
+                  child: Column(
+                    children: [
+                      Row(children: [
+                        Expanded(
+                            child: _detailItem(Icons.calendar_today_outlined,
+                                'Date', _fmtDate(b.startTime))),
+                        Container(
+                            width: 1, height: 40, color: AppColors.cardBorder),
+                        Expanded(
+                            child: _detailItem(Icons.access_time, 'Time',
+                                _fmtTime(b.startTime))),
+                        Container(
+                            width: 1, height: 40, color: AppColors.cardBorder),
+                        Expanded(
+                            child: _detailItem(Icons.timer_outlined, 'Duration',
+                                '${b.duration}h')),
+                      ]),
+                      if (b.vehicleNumber.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          height: 1,
+                          color: AppColors.cardBorder,
+                        ),
+                        const SizedBox(height: 12),
+                        _detailItem(Icons.directions_car_outlined, 'Vehicle',
+                            b.vehicleNumber),
+                      ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                // Location row
-                Row(children: [
-                  Icon(Icons.location_on_outlined,
-                      size: 14, color: AppColors.textHint),
-                  const SizedBox(width: 4),
-                  Expanded(
-                      child: Text(b.parkingAddress,
+                const SizedBox(height: 14),
+
+                // Payment Information
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.success.withValues(alpha: 0.08),
+                        AppColors.success.withValues(alpha: 0.04),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.account_balance_wallet_outlined,
+                                  size: 16, color: AppColors.success),
+                              const SizedBox(width: 6),
+                              Text('TOTAL AMOUNT',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.success,
+                                      letterSpacing: 1)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text('₹${b.basePrice.toStringAsFixed(0)} + fees',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary)),
+                        ],
+                      ),
+                      Text('\u20B9${b.totalPrice.toStringAsFixed(0)}',
                           style: GoogleFonts.poppins(
-                              fontSize: 12, color: AppColors.textHint),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis)),
-                ]),
-                if (b.vehicleNumber.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    Icon(Icons.directions_car_outlined,
-                        size: 14, color: AppColors.textHint),
-                    const SizedBox(width: 4),
-                    Text(b.vehicleNumber,
-                        style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary)),
-                  ]),
-                ],
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.success)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

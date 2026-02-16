@@ -129,52 +129,75 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // ── MY ACTIVITY ──
-              _sectionHeader(AppStrings.myActivity),
-              _settingsGroup([
-                _SettingItem(
-                    icon: Icons.calendar_today_outlined,
-                    iconColor: AppColors.primary,
-                    title: AppStrings.myBookings,
-                    onTap: () => Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const MainNavigation(initialIndex: 2)),
-                        (r) => false)),
-                _SettingItem(
-                    icon: Icons.local_parking_outlined,
-                    iconColor: AppColors.accent,
-                    title: AppStrings.myParkings,
-                    onTap: () => Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const MainNavigation(initialIndex: 1)),
-                        (r) => false)),
-                _SettingItem(
-                    icon: Icons.chat_bubble_outline,
-                    iconColor: AppColors.success,
-                    title: 'Messages',
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const ConversationsScreen()))),
-              ]),
-              const SizedBox(height: 14),
+              // ── ACTIVITY & PREFERENCES (conditional based on user role) ──
+              if (user.role != UserRole.admin) ...[
+                _sectionHeader(AppStrings.myActivity),
+                _settingsGroup([
+                  _SettingItem(
+                      icon: Icons.calendar_today_outlined,
+                      iconColor: AppColors.primary,
+                      title: AppStrings.myBookings,
+                      onTap: () => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const MainNavigation(initialIndex: 2)),
+                          (r) => false)),
+                  if (user.role == UserRole.owner)
+                    _SettingItem(
+                        icon: Icons.local_parking_outlined,
+                        iconColor: AppColors.accent,
+                        title: AppStrings.myParkings,
+                        onTap: () => Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const MainNavigation(initialIndex: 1)),
+                            (r) => false)),
+                  _SettingItem(
+                      icon: Icons.chat_bubble_outline,
+                      iconColor: AppColors.success,
+                      title: 'Messages',
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const ConversationsScreen()))),
+                ]),
+                const SizedBox(height: 14),
 
-              // ── PREFERENCES ──
-              _sectionHeader(AppStrings.preferences),
-              _settingsGroup([
-                _SettingItem(
-                    icon: Icons.payment_outlined,
-                    iconColor: AppColors.info,
-                    title: AppStrings.paymentMethods,
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const PaymentMethodsScreen()))),
-                _SettingItem(
-                    icon: Icons.favorite_outline,
-                    iconColor: Colors.pink,
-                    title: AppStrings.favoriteSpots,
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const SavedScreen()))),
-              ]),
+                // ── PREFERENCES ──
+                _sectionHeader(AppStrings.preferences),
+                _settingsGroup([
+                  _SettingItem(
+                      icon: Icons.payment_outlined,
+                      iconColor: AppColors.info,
+                      title: AppStrings.paymentMethods,
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const PaymentMethodsScreen()))),
+                  _SettingItem(
+                      icon: Icons.favorite_outline,
+                      iconColor: Colors.pink,
+                      title: AppStrings.favoriteSpots,
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const SavedScreen()))),
+                ]),
+              ] else ...[
+                // ── ADMIN MANAGEMENT ──
+                _sectionHeader('ADMINISTRATION'),
+                _settingsGroup([
+                  _SettingItem(
+                      icon: Icons.dashboard_outlined,
+                      iconColor: AppColors.primary,
+                      title: 'Admin Dashboard',
+                      onTap: () => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const MainNavigation(initialIndex: 0)),
+                          (r) => false)),
+                  _SettingItem(
+                      icon: Icons.chat_bubble_outline,
+                      iconColor: AppColors.success,
+                      title: 'Messages',
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const ConversationsScreen()))),
+                ]),
+              ],
               const SizedBox(height: 14),
 
               // ── SYSTEM ──

@@ -14,11 +14,12 @@ import '../screens/owner/owner_bookings_screen.dart';
 import '../screens/owner/owner_profile_screen.dart';
 import '../screens/owner/owner_pending_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/admin/admin_bookings_detail_screen.dart';
 
 /// Main navigation shell with role-based bottom navigation bar
 /// Driver: Explore, Saved, Bookings, Profile
-/// Owner: Explore, Dashboard, Bookings, Profile
-/// Admin: Dashboard, Explore, Bookings, Profile
+/// Owner: Home, Dashboard, Bookings, Profile
+/// Admin: Dashboard, Bookings, Profile
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
   const MainNavigation({super.key, this.initialIndex = 0});
@@ -42,8 +43,7 @@ class _MainNavigationState extends State<MainNavigation> {
       case UserRole.admin:
         return const [
           AdminDashboardScreen(),
-          HomeScreen(),
-          BookingsScreen(),
+          AdminBookingsDetailScreen(),
           ProfileScreen(),
         ];
       case UserRole.owner:
@@ -73,7 +73,6 @@ class _MainNavigationState extends State<MainNavigation> {
       case UserRole.admin:
         return [
           _NavItemData(Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
-          _NavItemData(Icons.explore_outlined, Icons.explore, 'Explore'),
           _NavItemData(
               Icons.calendar_today_outlined, Icons.calendar_today, 'Bookings'),
           _NavItemData(Icons.person_outline, Icons.person, 'Profile'),
