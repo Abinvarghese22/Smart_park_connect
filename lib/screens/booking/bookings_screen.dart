@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/app_provider.dart';
+import '../../widgets/smart_image.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -37,6 +38,19 @@ class _BookingsScreenState extends State<BookingsScreen>
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final bookings = provider.bookings;
+    final now = DateTime.now();
+
+    final upcomingBookings = bookings.where((b) {
+      return b.status == 'confirmed' && b.startTime.isAfter(now);
+    }).toList();
+
+    final activeBookings = bookings.where((b) {
+      return b.status == 'confirmed' && (b.startTime.isBefore(now) || b.startTime.isAtSameMomentAs(now));
+    }).toList();
+
+    final pastBookings = bookings.where((b) {
+      return b.status == 'completed' || b.status == 'cancelled';
+    }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -75,9 +89,9 @@ class _BookingsScreenState extends State<BookingsScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _list(bookings.where((b) => b.status == 'confirmed').toList(), 'No upcoming bookings', 'Book a parking spot to see\nyour upcoming reservations here.', Icons.calendar_today_outlined),
-                  _list(bookings.where((b) => b.status == 'active').toList(), 'No active bookings', 'You don\'t have any active\nparking sessions right now.', Icons.play_circle_outline),
-                  _list(bookings.where((b) => b.status == 'completed').toList(), 'No past bookings', 'Your completed bookings\nwill appear here.', Icons.check_circle_outline),
+                   _list(upcomingBookings, 'No upcoming bookings', 'Book a parking spot to see\nyour upcoming reservations here.', Icons.calendar_today_outlined),
+                  _list(activeBookings, 'No active bookings', 'You don\'t have any active\nparking sessions right now.', Icons.play_circle_outline),
+                  _list(pastBookings, 'No past bookings', 'Your completed bookings\nwill appear here.', Icons.check_circle_outline),
                 ],
               ),
             ),
@@ -109,66 +123,186 @@ class _BookingsScreenState extends State<BookingsScreen>
     final df = DateFormat('dd MMM, hh:mm a');
     final sc = _sc(b.status);
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6)
+          )
+        ],
       ),
-      child: Column(children: [
-        // Color accent bar
-        Container(height: 3, decoration: BoxDecoration(color: sc, borderRadius: const BorderRadius.vertical(top: Radius.circular(20)))),
-        Padding(padding: const EdgeInsets.all(14), child: Column(children: [
-          Row(children: [
-            // Image with rounded corners
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(b.parkingImage, width: 72, height: 72, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(width: 72, height: 72,
-                  decoration: BoxDecoration(gradient: LinearGradient(colors: [sc.withValues(alpha: 0.1), sc.withValues(alpha: 0.04)]), borderRadius: BorderRadius.circular(14)),
-                  child: Icon(Icons.local_parking, size: 28, color: sc.withValues(alpha: 0.5)))),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // Image
+                SmartImage(
+                  imageSource: b.parkingImage,
+                  width: 80,
+                  height: 80,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                const SizedBox(width: 16),
+                // Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              b.parkingName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              b.slotLabel,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textHint),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              b.parkingAddress,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Status Chip
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: sc.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: sc,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              b.status.toUpperCase(),
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: sc,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(b.parkingName, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-              const SizedBox(height: 2),
-              Row(children: [
-                Icon(Icons.location_on_outlined, size: 13, color: AppColors.textHint),
-                const SizedBox(width: 3),
-                Expanded(child: Text(b.parkingAddress, style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              ]),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: sc.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: sc.withValues(alpha: 0.3), width: 0.5)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(_si(b.status), size: 12, color: sc),
-                  const SizedBox(width: 4),
-                  Text(b.status.toString().toUpperCase(), style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: sc, letterSpacing: 0.3)),
-                ]),
-              ),
-            ])),
-          ]),
-          const SizedBox(height: 12),
-          // Info row
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(12)),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(df.format(b.startTime), style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                Text(b.durationFormatted, style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textSecondary)),
-              ]),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.04)]), borderRadius: BorderRadius.circular(10)),
-                child: Text('\u20B9${b.totalPrice.toStringAsFixed(0)}', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary)),
-              ),
-            ]),
-          ),
-        ])),
-      ]),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: AppColors.cardBorder),
+            const SizedBox(height: 16),
+            // Bottom Info
+            // Bottom Info
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 12, color: AppColors.textHint),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Booking Time',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      df.format(b.startTime),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.account_balance_wallet_outlined, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        '\u20B9${b.totalPrice.toStringAsFixed(0)}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../core/constants/app_colors.dart';
 
 /// A smart image widget that automatically detects whether the image source
@@ -78,31 +79,31 @@ class SmartImage extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.08),
-            AppColors.primary.withValues(alpha: 0.03),
-          ],
-        ),
+        color: AppColors.backgroundLight,
         borderRadius: borderRadius,
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.local_parking_rounded,
-            size: (height ?? 80) * 0.35,
-            color: AppColors.primary.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'No Image',
-            style: TextStyle(
-              fontSize: 10,
-              color: AppColors.primary.withValues(alpha: 0.4),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.image_not_supported_outlined,
+              size: (height ?? 80) * 0.3,
+              color: AppColors.textHint.withValues(alpha: 0.4),
             ),
-          ),
-        ],
+            if ((height ?? 80) > 60) ...[
+              const SizedBox(height: 4),
+              Text(
+                'No Image',
+                style: GoogleFonts.poppins(
+                  fontSize: (height ?? 80) * 0.12,
+                  color: AppColors.textHint.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
