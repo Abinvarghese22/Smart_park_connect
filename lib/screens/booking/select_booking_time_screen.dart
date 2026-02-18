@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/parking_spot.dart';
+import '../../models/parking_slot.dart';
 import '../payment/payment_screen.dart';
 
 /// Select booking time screen with calendar, time pickers, duration chips
@@ -18,8 +19,13 @@ const List<String> _popularDurations = [
 
 class SelectBookingTimeScreen extends StatefulWidget {
   final ParkingSpot spot;
+  final ParkingSlot selectedSlot;
 
-  const SelectBookingTimeScreen({super.key, required this.spot});
+  const SelectBookingTimeScreen({
+    super.key,
+    required this.spot,
+    required this.selectedSlot,
+  });
 
   @override
   State<SelectBookingTimeScreen> createState() =>
@@ -30,7 +36,11 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
   // Calendar state
   late DateTime _currentMonth;
   late int _selectedDay;
-  int _selectedDurationIndex = 0;
+  int _selectedDurationIndex = 1; // Default to 2 hrs
+
+  // Time state
+  late TimeOfDay _startTimeTod;
+  late TimeOfDay _endTimeTod;
 
   @override
   void initState() {
@@ -38,20 +48,41 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
     final now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month);
     _selectedDay = now.day;
+    _startTimeTod = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
+    _endTimeTod = TimeOfDay(hour: (now.hour + 3) % 24, minute: 0);
   }
 
-  // Time state
-  String _startTime = '10:00 AM';
-  String _endTime = '01:00 PM';
+  double _calculateDurationInHours() {
+    final double start = _startTimeTod.hour + _startTimeTod.minute / 60.0;
+    double end = _endTimeTod.hour + _endTimeTod.minute / 60.0;
+
+    if (end <= start) {
+      // Assume next day if end is before/equal start
+      end += 24.0;
+    }
+
+    return end - start;
+  }
+
+  void _updateEndTimeFromDuration(double hours) {
+    final startTimeInMinutes = _startTimeTod.hour * 60 + _startTimeTod.minute;
+    final endTimeInMinutes = (startTimeInMinutes + (hours * 60)).toInt();
+
+    setState(() {
+      _endTimeTod = TimeOfDay(
+        hour: (endTimeInMinutes ~/ 60) % 24,
+        minute: endTimeInMinutes % 60,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final spot = widget.spot;
 
-    // Calculate duration and price based on selected duration
-    final durations = [1.0, 2.0, 4.0, 8.0];
-    final selectedDuration = durations[_selectedDurationIndex];
-    final estimatedPrice = spot.pricePerHour * selectedDuration;
+    final selectedDuration = _calculateDurationInHours();
+    final calculatedPrice = spot.pricePerHour * selectedDuration;
+    final estimatedPrice = calculatedPrice < 10.0 ? 10.0 : calculatedPrice;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -181,16 +212,16 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
                         Expanded(
                           child: _buildTimeSelector(
                             label: AppStrings.startTime,
-                            value: _startTime,
+                            value: _startTimeTod.format(context),
                             onTap: () async {
                               final time = await showTimePicker(
                                 context: context,
-                                initialTime:
-                                    const TimeOfDay(hour: 10, minute: 0),
+                                initialTime: _startTimeTod,
                               );
                               if (time != null) {
                                 setState(() {
-                                  _startTime = time.format(context);
+                                  _startTimeTod = time;
+                                  _selectedDurationIndex = -1; // Deselect popular durations
                                 });
                               }
                             },
@@ -201,16 +232,16 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
                         Expanded(
                           child: _buildTimeSelector(
                             label: AppStrings.endTime,
-                            value: _endTime,
+                            value: _endTimeTod.format(context),
                             onTap: () async {
                               final time = await showTimePicker(
                                 context: context,
-                                initialTime:
-                                    const TimeOfDay(hour: 13, minute: 0),
+                                initialTime: _endTimeTod,
                               );
                               if (time != null) {
                                 setState(() {
-                                  _endTime = time.format(context);
+                                  _endTimeTod = time;
+                                  _selectedDurationIndex = -1; // Deselect popular durations
                                 });
                               }
                             },
@@ -236,6 +267,8 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
                               onTap: () {
                                 setState(() {
                                   _selectedDurationIndex = index;
+                                  final durationValues = [1.0, 2.0, 4.0, 6.0, 12.0, 24.0];
+                                  _updateEndTimeFromDuration(durationValues[index]);
                                 });
                               },
                               child: AnimatedContainer(
@@ -360,7 +393,7 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${selectedDuration.toInt()} hours 00 mins',
+                                '${selectedDuration.floor()} hours ${( (selectedDuration - selectedDuration.floor()) * 60).toInt()} mins',
                                 style: GoogleFonts.poppins(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -407,10 +440,16 @@ class _SelectBookingTimeScreenState extends State<SelectBookingTimeScreen> {
                             MaterialPageRoute(
                               builder: (_) => PaymentScreen(
                                 spot: spot,
+                                selectedSlot: widget.selectedSlot,
                                 duration: selectedDuration,
                                 totalPrice: estimatedPrice,
-                                selectedDate:
-                                    '$_selectedDay ${_getMonthYear().split(' ').first.substring(0, 3)}, $_startTime',
+                                startTime: DateTime(
+                                  _currentMonth.year,
+                                  _currentMonth.month,
+                                  _selectedDay,
+                                  _startTimeTod.hour,
+                                  _startTimeTod.minute,
+                                ),
                               ),
                             ),
                           );

@@ -5,7 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/parking_card.dart';
 import '../parking/parking_details_screen.dart';
-import '../booking/select_booking_time_screen.dart';
+import '../parking/slot_selection_screen.dart';
 
 /// Saved/Favorite parking spots screen
 class SavedScreen extends StatelessWidget {
@@ -83,7 +83,7 @@ class SavedScreen extends StatelessWidget {
                     provider.selectSpot(spot);
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => SelectBookingTimeScreen(spot: spot),
+                        builder: (_) => SlotSelectionScreen(spot: spot),
                       ),
                     );
                   },

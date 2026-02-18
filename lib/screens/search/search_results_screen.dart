@@ -6,7 +6,7 @@ import '../../core/constants/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/parking_card.dart';
 import '../parking/parking_details_screen.dart';
-import '../booking/select_booking_time_screen.dart';
+import '../parking/slot_selection_screen.dart';
 
 /// Search results screen showing parking spots list with sort/filter
 /// Matches reference: parking_search_results/screen.png
@@ -109,7 +109,7 @@ class SearchResultsScreen extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) =>
-                              SelectBookingTimeScreen(spot: spot),
+                              SlotSelectionScreen(spot: spot),
                         ),
                       );
                     },

@@ -10,8 +10,8 @@ import '../../models/user_model.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/map_pin.dart';
 import '../../widgets/smart_image.dart';
-import '../booking/select_booking_time_screen.dart';
 import '../chat/chat_screen.dart';
+import 'slot_selection_screen.dart';
 
 /// Parking spot details screen with image gallery, amenities, host info, map
 /// Matches reference: parking_spot_details/screen.png
@@ -523,7 +523,7 @@ class _ParkingDetailsScreenState extends State<ParkingDetailsScreen> {
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    SelectBookingTimeScreen(spot: spot),
+                                    SlotSelectionScreen(spot: spot),
                               ),
                             );
                           },

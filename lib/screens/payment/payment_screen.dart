@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/parking_spot.dart';
 import '../../models/booking.dart';
+import '../../models/parking_slot.dart';
 import '../../providers/app_provider.dart';
 import 'booking_confirmation_screen.dart';
 import '../../widgets/smart_image.dart';
@@ -16,16 +18,18 @@ import '../profile/payment_methods_screen.dart';
 /// Matches reference: payment_&_confirmation/screen.png
 class PaymentScreen extends StatefulWidget {
   final ParkingSpot spot;
+  final ParkingSlot selectedSlot;
   final double duration;
   final double totalPrice;
-  final String selectedDate;
+  final DateTime startTime;
 
   const PaymentScreen({
     super.key,
     required this.spot,
+    required this.selectedSlot,
     required this.duration,
     required this.totalPrice,
-    required this.selectedDate,
+    required this.startTime,
   });
 
   @override
@@ -39,7 +43,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   PaymentMethod? _selectedPaymentMethod;
   bool _isLoadingPaymentMethods = true;
 
-  double get basePrice => widget.spot.pricePerHour * widget.duration;
+  double get basePrice {
+    final calculated = widget.spot.pricePerHour * widget.duration;
+    return calculated < 10.0 ? 10.0 : calculated;
+  }
   double get serviceFee => basePrice * 0.1;
   double get gst => basePrice * 0.1;
   double get totalAmount => basePrice + serviceFee + gst;
@@ -489,7 +496,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  widget.selectedDate,
+                                  DateFormat('dd MMM, hh:mm a').format(widget.startTime),
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
@@ -996,42 +1003,62 @@ class _PaymentScreenState extends State<PaymentScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _selectedPaymentMethod == null || !_agreedToTerms
-                    ? null
-                    : () {
-                        // Create a real booking with user and owner info
-                        final provider = context.read<AppProvider>();
-                        final currentUser = provider.currentUser;
-                        final now = DateTime.now();
-                        final booking = Booking(
-                          id: 'bk_${now.millisecondsSinceEpoch}',
-                          userId: currentUser.id,
-                          ownerId: spot.ownerId,
-                          parkingSpotId: spot.id,
-                          parkingName: spot.name,
-                          parkingAddress: spot.address,
-                          parkingImage: spot.imageUrl,
-                          startTime: now,
-                          endTime:
-                              now.add(Duration(hours: widget.duration.toInt())),
-                          totalPrice: totalAmount,
-                          basePrice: basePrice,
-                          serviceFee: serviceFee,
-                          gst: gst,
-                          status: 'confirmed',
-                          userName: currentUser.name,
-                        );
-                        provider.addBooking(booking);
+                      onPressed: _selectedPaymentMethod == null || !_agreedToTerms
+                          ? null
+                          : () async {
+                              // Create a real booking with user and owner info
+                              final provider = context.read<AppProvider>();
+                              final currentUser = provider.currentUser;
+                              final now = DateTime.now();
+                              final booking = Booking(
+                                id: 'bk_${now.millisecondsSinceEpoch}',
+                                userId: currentUser.id,
+                                ownerId: spot.ownerId,
+                                parkingSpotId: spot.id,
+                                parkingName: spot.name,
+                                parkingAddress: spot.address,
+                                parkingImage: spot.imageUrl,
+                                startTime: widget.startTime,
+                                endTime: widget.startTime.add(
+                                    Duration(minutes: (widget.duration * 60).toInt())),
+                                totalPrice: totalAmount,
+                                basePrice: basePrice,
+                                serviceFee: serviceFee,
+                                gst: gst,
+                                status: 'confirmed',
+                                userName: currentUser.name,
+                                slotId: widget.selectedSlot.id,
+                                slotLabel: widget.selectedSlot.label,
+                              );
 
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => BookingConfirmationScreen(
-                              spotName: spot.name,
-                              totalAmount: totalAmount,
-                            ),
-                          ),
-                        );
-                      },
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final navigator = Navigator.of(context);
+
+                              // NEW: Atomic booking check
+                              final error = await provider.bookSlot(
+                                  slot: widget.selectedSlot, booking: booking);
+
+                              if (!mounted) return;
+
+                              if (error != null) {
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(error),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              navigator.push(
+                                MaterialPageRoute(
+                                  builder: (_) => BookingConfirmationScreen(
+                                    spotName: spot.name,
+                                    totalAmount: totalAmount,
+                                  ),
+                                ),
+                              );
+                            },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,

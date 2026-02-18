@@ -19,6 +19,8 @@ class Booking {
   final String paymentMethod;
   final String userName; // name of the person who booked
   final String vehicleNumber; // vehicle registration number
+  final String slotId;    // e.g., 'spot_001_A1'
+  final String slotLabel; // e.g., 'A1'
 
   const Booking({
     required this.id,
@@ -38,6 +40,8 @@ class Booking {
     this.paymentMethod = 'Visa •••• 4242',
     this.userName = '',
     this.vehicleNumber = '',
+    this.slotId = '',
+    this.slotLabel = '',
   });
 
   /// Duration in hours
@@ -73,6 +77,8 @@ class Booking {
         'paymentMethod': paymentMethod,
         'userName': userName,
         'vehicleNumber': vehicleNumber,
+        'slotId': slotId,
+        'slotLabel': slotLabel,
       };
 
   factory Booking.fromJson(Map<String, dynamic> json) => Booking(
@@ -93,6 +99,8 @@ class Booking {
         paymentMethod: json['paymentMethod'] ?? '',
         userName: json['userName'] ?? '',
         vehicleNumber: json['vehicleNumber'] ?? '',
+        slotId: json['slotId'] ?? '',
+        slotLabel: json['slotLabel'] ?? '',
       );
 
   String toJsonString() => jsonEncode(toJson());
@@ -117,6 +125,8 @@ class Booking {
     String? paymentMethod,
     String? userName,
     String? vehicleNumber,
+    String? slotId,
+    String? slotLabel,
   }) =>
       Booking(
         id: id ?? this.id,
@@ -136,5 +146,7 @@ class Booking {
         paymentMethod: paymentMethod ?? this.paymentMethod,
         userName: userName ?? this.userName,
         vehicleNumber: vehicleNumber ?? this.vehicleNumber,
+        slotId: slotId ?? this.slotId,
+        slotLabel: slotLabel ?? this.slotLabel,
       );
 }

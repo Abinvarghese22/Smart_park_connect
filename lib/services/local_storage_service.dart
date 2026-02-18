@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/parking_spot.dart';
 import '../models/booking.dart';
 import '../models/chat_message.dart';
+import '../models/parking_slot.dart';
 
 /// Local storage service for prototype authentication
 /// Stores user accounts and session data on device using SharedPreferences
@@ -17,6 +18,7 @@ class LocalStorageService {
   static const String _dataSeededKey = 'data_seeded_v3';
   static const String _messagesKey = 'chat_messages';
   static const String _conversationsKey = 'conversations';
+  static const String _slotsKey = 'parking_slots'; // key: 'slots_<spotId>'
 
   // ---------- USER REGISTRATION ----------
 
@@ -420,5 +422,80 @@ class LocalStorageService {
     }
     await prefs.setStringList(
         _messagesKey, allMessages.map((m) => m.toJsonString()).toList());
+  }
+
+  // ---------- PARKING SLOTS ----------
+
+  /// Storage key for a specific spot's slots
+  static String _slotKeyForSpot(String spotId) => '${_slotsKey}_$spotId';
+
+  /// Get all slots for a specific parking spot
+  static Future<List<ParkingSlot>> getSlotsForSpot(String spotId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList(_slotKeyForSpot(spotId)) ?? [];
+    return jsonList.map((s) => ParkingSlot.fromJsonString(s)).toList();
+  }
+
+  /// Save all slots for a specific parking spot
+  static Future<void> saveSlotsForSpot(
+      String spotId, List<ParkingSlot> slots) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _slotKeyForSpot(spotId),
+      slots.map((s) => s.toJsonString()).toList(),
+    );
+  }
+
+  /// Seed default slots for a newly added parking spot.
+  /// Generates rows A, B, C, D with up to 4 slots each (e.g., A1–A4, B1–B4).
+  /// Total slots created = min(capacity, 16).
+  static Future<void> seedSlotsForSpot(String spotId, int capacity) async {
+    // Don't overwrite if slots already exist
+    final existing = await getSlotsForSpot(spotId);
+    if (existing.isNotEmpty) return;
+
+    const rows = ['A', 'B', 'C', 'D'];
+    final slots = <ParkingSlot>[];
+    int count = 0;
+    for (final row in rows) {
+      for (int i = 1; i <= 4 && count < capacity; i++, count++) {
+        final label = '$row$i';
+        slots.add(ParkingSlot(
+          id: '${spotId}_$label',
+          spotId: spotId,
+          label: label,
+        ));
+      }
+    }
+    await saveSlotsForSpot(spotId, slots);
+  }
+
+  /// Atomically book a slot and create a booking record.
+  /// Re-reads slot state from storage to prevent double-booking.
+  /// Returns an error string on failure, or null on success.
+  static Future<String?> bookSlotAtomically({
+    required ParkingSlot slot,
+    required Booking booking,
+  }) async {
+    // Re-read from storage to get the absolute latest state
+    final currentSlots = await getSlotsForSpot(slot.spotId);
+    final idx = currentSlots.indexWhere((s) => s.id == slot.id);
+
+    if (idx == -1) return 'Slot not found.';
+    if (!currentSlots[idx].isAvailable) {
+      return 'This slot was just booked. Please choose another.';
+    }
+
+    // Mark slot as booked
+    currentSlots[idx] = currentSlots[idx].copyWith(
+      status: 'booked',
+      bookedByUserId: booking.userId,
+      bookingId: booking.id,
+    );
+    await saveSlotsForSpot(slot.spotId, currentSlots);
+
+    // Save the booking record
+    await addBooking(booking);
+    return null; // success
   }
 }

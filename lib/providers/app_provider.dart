@@ -4,6 +4,7 @@ import '../models/parking_spot.dart';
 import '../models/booking.dart';
 import '../models/user_model.dart';
 import '../models/chat_message.dart';
+import '../models/parking_slot.dart';
 import '../services/local_storage_service.dart';
 
 /// Main application state provider
@@ -174,7 +175,7 @@ class AppProvider extends ChangeNotifier {
         .toList();
   }
 
-  /// Add a new parking spot (owner action)
+  /// Add a new parking spot (owner action) and auto-seed its slots
   Future<String?> addParkingSpot(ParkingSpot spot) async {
     // Check if current user is an approved owner
     if (!currentUser.canPerformOwnerActions) {
@@ -189,6 +190,8 @@ class AppProvider extends ChangeNotifier {
 
     _parkingSpots.add(spot);
     await LocalStorageService.saveParkingSpots(_parkingSpots);
+    // Auto-seed slots for the new spot based on its capacity
+    await LocalStorageService.seedSlotsForSpot(spot.id, spot.capacity);
     notifyListeners();
     return null; // Success
   }
@@ -258,11 +261,49 @@ class AppProvider extends ChangeNotifier {
   List<Booking> get ownerBookings =>
       _allBookings.where((b) => b.ownerId == currentUser.id).toList();
 
-  /// Add a new booking after successful payment
+  /// Find a specific booking by ID
+  Booking? getBookingById(String id) {
+    try {
+      return _allBookings.firstWhere((b) => b.id == id);
+    } catch (_) {
+       return null;
+    }
+  }
+
+  /// Add a new booking after successful payment (legacy path, kept for compatibility)
   Future<void> addBooking(Booking booking) async {
     _allBookings.insert(0, booking);
     await LocalStorageService.saveBookings(_allBookings);
     notifyListeners();
+  }
+
+  /// Book a specific slot atomically. Returns error string or null on success.
+  /// This is the primary booking path for slot-based bookings.
+  Future<String?> bookSlot({
+    required ParkingSlot slot,
+    required Booking booking,
+  }) async {
+    final error = await LocalStorageService.bookSlotAtomically(
+      slot: slot,
+      booking: booking,
+    );
+    if (error != null) return error;
+    // Reload bookings to reflect new state
+    _allBookings = await LocalStorageService.getAllBookings();
+    notifyListeners();
+    return null;
+  }
+
+  /// Load slots for a specific parking spot (called by UI)
+  Future<List<ParkingSlot>> getSlotsForSpot(String spotId) async {
+    final slots = await LocalStorageService.getSlotsForSpot(spotId);
+    if (slots.isEmpty) {
+      // Auto-seed if none exist (backward compatibility for existing spots)
+      final spot = _parkingSpots.firstWhere((s) => s.id == spotId);
+      await LocalStorageService.seedSlotsForSpot(spot.id, spot.capacity);
+      return await LocalStorageService.getSlotsForSpot(spotId);
+    }
+    return slots;
   }
 
   /// Update booking status

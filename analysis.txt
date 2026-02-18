@@ -1,0 +1,17 @@
+Analyzing Smart_park_connect...                                 
+
+warning - Unused import: '../booking/select_booking_time_screen.dart' - lib\screens\home\saved_screen.dart:9:8 - unused_import
+warning - Unused import: '../booking/select_booking_time_screen.dart' - lib\screens\parking\parking_details_screen.dart:13:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:142:26 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:206:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:208:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:215:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:216:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:222:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:272:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:297:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\parking\slot_selection_screen.dart:332:61 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\payment\payment_screen.dart:1037:54 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\payment\payment_screen.dart:1046:44 - use_build_context_synchronously
+warning - Unused import: '../booking/select_booking_time_screen.dart' - lib\screens\search\search_results_screen.dart:10:8 - unused_import
+
